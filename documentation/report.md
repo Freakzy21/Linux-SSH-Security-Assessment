@@ -1,82 +1,189 @@
-# Linux SSH Security Assessment
+# Linux SSH Security Assessment Report
 
-## Project Overview
+**Project:** Cybersecurity Homelab — Project 01  
+**Assessment Date:** October 2026  
+**Assessment Type:** Network Security and Linux Hardening  
+**Environment:** Oracle VirtualBox  
+**Tools:** Kali Linux, Ubuntu, Nmap, OpenSSH, UFW, journalctl
 
-This project documents a hands-on cybersecurity assessment conducted in a virtualized Linux environment using Kali Linux and Ubuntu.
+---
 
-The objective was to assess SSH accessibility, investigate authentication activity, configure firewall access restrictions, and validate defensive security controls through network testing.
+## 1. Executive Summary
 
-The exercise combined **Red Team reconnaissance** with **Blue Team security monitoring and hardening**.
+This security assessment evaluated SSH accessibility, authentication logging, and firewall access controls on an Ubuntu Linux virtual machine.
 
-## Technologies Used
+The assessment combined offensive reconnaissance with defensive monitoring and security hardening.
 
-- Oracle VirtualBox
-- Kali Linux
-- Ubuntu Linux
-- Nmap
-- OpenSSH
-- UFW (Uncomplicated Firewall)
-- Linux systemd journal / journalctl
+Testing demonstrated that SSH accessibility changed when firewall permissions were modified. Additionally, authentication logs recorded two unsuccessful login attempts followed by a successful authentication.
 
-## Network Architecture
+**Overall Result:** The exercise demonstrated functional SSH logging and the ability to restrict access using firewall rules. No exploitation or unauthorized compromise was established.
 
-The homelab contained two virtual machines connected through an internal network and a host-only network.
+## 2. Scope and Objectives
 
-| Machine | Internal Network | Host-Only Network |
-|---------|------------------|-------------------|
-| Kali Linux | 192.168.56.10 | 192.168.57.10 |
-| Ubuntu | 192.168.56.20 | 192.168.57.20 |
+The assessment was performed within an authorized, isolated VirtualBox environment.
 
-Kali served as the assessment workstation, while Ubuntu was the system being defended.
+| Machine | Role | Internal IP | Host-Only IP |
+|---|---|---|---|
+| Kali Linux | Assessment workstation | 192.168.56.10 | 192.168.57.10 |
+| Ubuntu | Defender | 192.168.56.20 | 192.168.57.20 |
 
-## Assessment Methodology
+**Assessment objectives:**
+- Identify exposed network services.
+- Analyze SSH authentication events.
+- Configure least-privilege firewall rules.
+- Verify the effect of firewall changes.
+- Document findings and recommendations.
 
-### 1. Network Reconnaissance
+## 3. Network Architecture
 
-Used Nmap to discover and examine services exposed by the Ubuntu system.
+The homelab used two virtual network segments.
 
-Commands used:
+**Internal Network — CyberLab:** Supported communication between Kali and Ubuntu.
+
+**Host-Only Network:** Allowed administration from the Windows host without router port forwarding.
+
+Add your network diagram here:
+
+![Homelab Network Architecture](../screenshots/network-diagram.png)
+
+## 4. Assessment Methodology
+
+### 4.1 Network Reconnaissance
+
+Nmap was used to identify network services exposed by Ubuntu.
+
+```bash
 nmap -sT -sV 192.168.56.20
-nmap -Pn -p 22 192.168.56.20
+```
 
-### 2. SSH Authentication Analysis
+**Purpose:** Identify accessible TCP ports and attempt service-version detection.
 
-Generated controlled failed and successful SSH login events and analyzed authentication records using:
+**Observation:** SSH was identified as an accessible service during the initial assessment.
 
-Commands used:
+![Initial Nmap Scan](../screenshots/nmap-initial-scan.png)
+
+### 4.2 Authentication Log Analysis
+
+Controlled SSH login attempts were generated from Kali Linux.
+
+```bash
+ssh analyst@192.168.57.20
+```
+
+Ubuntu's authentication records were inspected using:
+
+```bash
 sudo journalctl -u ssh --since "15 minutes ago"
+```
 
-Observed two failed authentication attempts followed by a successful login.
+**Observed results:**
 
-### 3. Firewall Hardening
+| Event | Result |
+|---|---|
+| Source IP | 192.168.57.10 |
+| Target account | analyst |
+| Failed login events | 2 |
+| Subsequent successful login | Yes |
 
-Configured UFW to restrict incoming connections and tested a temporary rule permitting SSH from an authorized lab address.
+The events were intentionally generated during the authorized exercise and did not establish malicious activity.
 
-### 4. Security Control Verification
+![SSH Authentication Logs](../screenshots/ssh-authentication-logs.png)
 
-Performed Nmap scans before and after changing the firewall rules.
+### 4.3 Firewall Hardening
 
-Observed that SSH was initially filtered, became open when the appropriate allow rule was applied, and was reported closed after the rule was removed during the final test.
+UFW was used to restrict unnecessary inbound connections.
 
-## Key Findings
+The firewall was inspected using:
 
-- SSH was accessible when an appropriate firewall rule permitted access.
-- Authentication logs recorded successful and failed SSH login events.
-- Firewall changes affected SSH accessibility as observed through Nmap.
-- Multiple network interfaces required careful consideration when configuring access restrictions.
+```bash
+sudo ufw status verbose
+```
 
-## Lessons Learned
+A rule permitting SSH from Kali's internal-network address was temporarily introduced for verification.
 
-This assessment improved my understanding of TCP ports, network reconnaissance, SSH administration, Linux authentication logs, least-privilege access control, and firewall verification.
+```bash
+sudo ufw allow from 192.168.56.10 to any port 22 proto tcp
+```
 
-A major takeaway was that security configurations must be tested rather than assumed to work as intended.
+The temporary rule was subsequently removed after testing.
 
-## Future Improvements
+### 4.4 Security Control Verification
 
-- Implement SSH key-based authentication
-- Configure centralized logging with Wazuh
-- Develop authentication-failure alerting
-- Expand testing to Windows endpoints
-- Practice incident response and defensive monitoring
+Nmap was used to observe SSH accessibility before and after firewall changes.
 
-**Disclaimer:** All testing was performed in a personally owned, authorized virtual cybersecurity lab.
+```bash
+nmap -Pn -p 22 --reason 192.168.56.20
+```
+
+| Test | Observed SSH State |
+|---|---|
+| Initial restricted state | Filtered |
+| SSH allowed from Kali | Open |
+| Temporary rule removed | Closed (final observation) |
+
+The final result was reported as `closed`, which differs from `filtered`. Additional verification would be required to establish the exact cause of that response.
+
+![Firewall Rules](../screenshots/ufw-firewall-rules.png)
+
+![SSH Allowed](../screenshots/nmap-ssh-allowed.png)
+
+![SSH Restricted](../screenshots/nmap-ssh-blocked.png)
+
+## 5. Security Findings
+
+### Finding 01 — SSH Service Exposure
+
+**Classification:** Informational
+
+SSH was accessible when network access was permitted by applicable firewall rules.
+
+**Risk:** Unnecessarily broad access to administrative services increases the potential attack surface.
+
+**Recommendation:** Limit SSH access to designated management IP addresses and implement key-based authentication.
+
+### Finding 02 — Authentication Logging
+
+**Classification:** Informational
+
+Ubuntu recorded controlled unsuccessful and successful SSH authentication events.
+
+**Risk:** Without active monitoring, suspicious authentication patterns may go unnoticed.
+
+**Recommendation:** Implement centralized log collection and alerting for abnormal authentication activity.
+
+### Finding 03 — Firewall Rule Verification
+
+**Classification:** Positive Security Observation
+
+Firewall modifications produced observable changes in SSH accessibility.
+
+**Recommendation:** Continue testing access restrictions from all relevant network interfaces, while preserving legitimate administrative access.
+
+## 6. Remediation Recommendations
+
+1. Implement SSH public-key authentication.
+2. Restrict SSH access to approved administration addresses.
+3. Enable centralized logging and security alerting.
+4. Review firewall rules periodically.
+5. Keep Linux packages and SSH services updated.
+6. Verify required services after configuration changes.
+
+## 7. Lessons Learned
+
+This project improved my understanding of network reconnaissance, SSH authentication, Linux security logs, firewall access control, and defensive security verification.
+
+A particularly important lesson was that security controls must be tested from the perspective of the accessing system rather than relying only on configuration settings.
+
+The exercise also reinforced a principle applicable to Collegiate Cyber Defense Competitions: defenders must reduce unauthorized access while preserving the availability of legitimate services.
+
+## 8. Conclusion
+
+The project demonstrated foundational Red Team and Blue Team skills within a controlled Linux homelab.
+
+The assessment established a baseline for future exercises involving centralized logging, incident response, vulnerability assessment, and server hardening.
+
+**Future Development:** Expand the environment with a SIEM to investigate and correlate security events across multiple systems.
+
+---
+
+*All testing was performed within an authorized personal cybersecurity homelab.*
