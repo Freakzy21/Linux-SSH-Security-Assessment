@@ -42,9 +42,6 @@ The homelab used two virtual network segments.
 
 **Host-Only Network:** Allowed administration from the Windows host without router port forwarding.
 
-Add your network diagram here:
-
-![Homelab Network Architecture](../screenshots/network-diagram.png)
 
 ## 4. Assessment Methodology
 
@@ -60,7 +57,7 @@ nmap -sT -sV 192.168.56.20
 
 **Observation:** SSH was identified as an accessible service during the initial assessment.
 
-![Initial Nmap Scan](../screenshots/nmap-initial-scan.png)
+![Initial Nmap Scan](../screenshots/Initial-Nmap-Scan.png)
 
 ### 4.2 Authentication Log Analysis
 
@@ -87,7 +84,7 @@ sudo journalctl -u ssh --since "15 minutes ago"
 
 The events were intentionally generated during the authorized exercise and did not establish malicious activity.
 
-![SSH Authentication Logs](../screenshots/ssh-authentication-logs.png)
+![SSH Authentication Logs](../screenshots/SSH-Authentication-Logs.png)
 
 ### 4.3 Firewall Hardening
 
@@ -102,7 +99,7 @@ sudo ufw status verbose
 A rule permitting SSH from Kali's internal-network address was temporarily introduced for verification.
 
 ```bash
-sudo ufw allow from 192.168.56.10 to any port 22 proto tcp
+sudo ufw allow from 192.168.57.10 to any port 22 proto tcp
 ```
 
 The temporary rule was subsequently removed after testing.
@@ -119,15 +116,13 @@ nmap -Pn -p 22 --reason 192.168.56.20
 |---|---|
 | Initial restricted state | Filtered |
 | SSH allowed from Kali | Open |
-| Temporary rule removed | Closed (final observation) |
+| Temporary rule removed | Filtered (final observation) |
 
-The final result was reported as `closed`, which differs from `filtered`. Additional verification would be required to establish the exact cause of that response.
 
-![Firewall Rules](../screenshots/ufw-firewall-rules.png)
+![Firewall Rules](../screenshots/UFW-Firewall-Status.png)
 
-![SSH Allowed](../screenshots/nmap-ssh-allowed.png)
+![SSH Allowed](../screenshots/SSH-Allow.png)
 
-![SSH Restricted](../screenshots/nmap-ssh-blocked.png)
 
 ## 5. Security Findings
 
