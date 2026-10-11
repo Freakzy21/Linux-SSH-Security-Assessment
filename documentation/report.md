@@ -57,7 +57,7 @@ nmap -sT -sV 192.168.56.20
 
 **Observation:** SSH was identified as an accessible service during the initial assessment.
 
-![Initial Nmap Scan](../screenshots/Initial-Nmap-Scan.png)
+![Initial Nmap Scan](../Screenshots/Initial-Nmap-Scan.png)
 
 ### 4.2 Authentication Log Analysis
 
@@ -77,14 +77,14 @@ sudo journalctl -u ssh --since "15 minutes ago"
 
 | Event | Result |
 |---|---|
-| Source IP | 192.168.57.10 |
+| Source IP | 192.168.56.10 |
 | Target account | analyst |
 | Failed login events | 2 |
 | Subsequent successful login | Yes |
 
 The events were intentionally generated during the authorized exercise and did not establish malicious activity.
 
-![SSH Authentication Logs](../screenshots/SSH-Authentication-Logs.png)
+![SSH Authentication Logs](../Screenshots/SSH-Authentication-Logs.png)
 
 ### 4.3 Firewall Hardening
 
@@ -119,10 +119,11 @@ nmap -Pn -p 22 --reason 192.168.56.20
 | Temporary rule removed | Filtered (final observation) |
 
 
-![Firewall Rules](../screenshots/UFW-Firewall-Status.png)
+![Firewall Rules](../Screenshots/UFW-Firewall-Status.png)
 
-![SSH Allowed](../screenshots/SSH-Allow.png)
+![SSH Allowed](../Screenshots/SSH-Allow.png)
 
+![SSH Restricted](../Screenshots/SSH-Restricted.png)  
 
 ## 5. Security Findings
 
